@@ -70,6 +70,8 @@ def PigeonholePrinciple(numPigeons: int, numHoles: int, functional=False, extens
                 )
         return clauses
 
+    ### Execution entry point ###
+
     # Initialize clause array
     clauses = []
 
@@ -137,7 +139,7 @@ def printCNF(numVars, clauses):
 
 def printExtLvl(extLevels):
     for i, lvl in enumerate(extLevels):
-        print(f"e {i + 1} {lvl}")
+        print(f"c extlvl {i + 1} {lvl}")
 
 if __name__ == '__main__':
     # Validate input
