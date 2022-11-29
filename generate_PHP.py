@@ -26,7 +26,7 @@ def PigeonholePrinciple(numPigeons: int, numHoles: int, functional=False, extens
         """
         Q_ij = getVar(pigeon, hole, nPigeons - 1, nHoles - 1)
         P_ij = getVar(pigeon, hole, nPigeons, nHoles)
-        P_im = getVar(pigeon, nHoles, nPigeons, nHoles)
+        P_im = getVar(pigeon, nHoles - 1, nPigeons, nHoles)
         P_nj = getVar(nPigeons - 1, hole, nPigeons, nHoles)
 
         return (Q_ij, P_ij, P_im, P_nj)
