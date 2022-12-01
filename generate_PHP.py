@@ -41,11 +41,11 @@ def PigeonholePrinciple(numPigeons: int, numHoles: int, functional=False, extens
             [ Q_ij, -P_im, -P_nj],
             [-Q_ij,  P_ij,  P_im],
             [-Q_ij,  P_ij,  P_nj],
-        ], {P_ij, P_im, P_nj}
+        ]
         elif extensionMode == 2: return [
             [ -q_ij, -P_im, -P_nj ], [ q_ij,  P_im ], [ q_ij, P_nj ],
             [ -Q_ij,  P_ij, -q_ij ], [ Q_ij, -P_ij ], [ Q_ij, q_ij ],
-        ], {q_ij, P_ij, P_im, P_nj}
+        ]
 
     def generateExtLayer(nPigeons, nHoles, prev_nVars: int, curr_nVars: int):
         """
@@ -58,20 +58,17 @@ def PigeonholePrinciple(numPigeons: int, numHoles: int, functional=False, extens
         """
 
         clauses = []
-        covered = set()
         for pigeon in range(nPigeons):
             for hole in range(nHoles):
                 (Q_ij, P_ij, P_im, P_nj) = getExtDefVars(pigeon, hole, nPigeons + 1, nHoles + 1)
-                (cs, vs) = getExtDefClauses(
+                clauses += getExtDefClauses(
                     curr_nVars + Q_ij,
                     prev_nVars + P_ij,
                     prev_nVars + P_im,
                     prev_nVars + P_nj,
                     (nPigeons) * (nHoles)
                 )
-                clauses += cs
-                covered |= vs
-        return clauses, covered
+        return clauses
 
     ### Execution entry point ###
 
@@ -107,15 +104,12 @@ def PigeonholePrinciple(numPigeons: int, numHoles: int, functional=False, extens
     prev_nVars = 0
     curr_nVars = getVar(numPigeons - 1, numHoles - 1)
     extLevels = [0] * curr_nVars
-    covered = set()
     if extensionMode > 0:
         for layer in range(1, numHoles):
             # Generate clauses
             nPigeons = numPigeons - layer
             nHoles   = numHoles - layer
-            (cs, vs) = generateExtLayer(nPigeons, nHoles, prev_nVars, curr_nVars)
-            clauses += cs
-            covered |= vs
+            clauses += generateExtLayer(nPigeons, nHoles, prev_nVars, curr_nVars)
 
             layer_size = nPigeons * nHoles
             prev_nVars = curr_nVars
@@ -128,7 +122,7 @@ def PigeonholePrinciple(numPigeons: int, numHoles: int, functional=False, extens
                 curr_nVars += 2 * layer_size
                 extLevels += [2 * layer] * layer_size + [2 * layer - 1] * layer_size
 
-    return (curr_nVars, clauses, extLevels, covered)
+    return (curr_nVars, clauses, extLevels)
 
 def printCNF(numVars, clauses):
     """
@@ -143,9 +137,9 @@ def printCNF(numVars, clauses):
         for lit in clause: print(f"{lit}", end=' ')
         print("0")
 
-def printExtLvl(extLevels, covered):
+def printExtLvl(extLevels):
     for i, lvl in enumerate(extLevels):
-        print(f"c extlvl {i + 1} {lvl} {1 if i + 1 in covered else 0}")
+        print(f"c extlvl {i + 1} {lvl}")
 
 if __name__ == '__main__':
     # Validate input
@@ -161,8 +155,8 @@ if __name__ == '__main__':
     assert(0 <= output_extLvl and output_extLvl <= 1)
 
     # Generate encoding
-    (numVars, clauses, extLevels, covered) = PigeonholePrinciple(numPigeons, numHoles, functional, extensionMode)
+    (numVars, clauses, extLevels) = PigeonholePrinciple(numPigeons, numHoles, functional, extensionMode)
     
     # Output formula
     printCNF(numVars, clauses)
-    if output_extLvl == 1: printExtLvl(extLevels, covered)
+    if output_extLvl == 1: printExtLvl(extLevels)
