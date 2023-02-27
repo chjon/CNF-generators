@@ -1,15 +1,15 @@
-import sys
+import argparse
 from typing import List
 
 # Generate clauses encoding x <=> XOR(a, b, c)
-def generate_3xor(x: int, a: int, b: int, c: int) -> List[List[int]]:
+def generate_xor(x: int, a: int, b: int, c: int) -> List[List[int]]:
     return [
         [-x, a, b, c], [-x,-a,-b, c], [-x,-a, b,-c], [-x, a,-b,-c],
         [ x,-a,-b,-c], [ x, a, b,-c], [ x, a,-b, c], [ x,-a, b, c],
     ]
 
 # Generate clauses encoding x <=> a + b + c > 1
-def generate_3gt1(x: int, a: int, b: int, c: int) -> List[List[int]]:
+def generate_gt1(x: int, a: int, b: int, c: int) -> List[List[int]]:
     return [
         [ x,-a,-b], [ x,-a,-c], [ x,-b,-c],
         [-x, a, b], [-x, a, c], [-x, b, c],
@@ -77,8 +77,8 @@ def generate_multiplier_cnf(n: int, offset: int = 1):
             out   = adder_out_vars  [row    ][col    ]
             c_in  = adder_carry_vars[row    ][col    ]
             c_out = adder_carry_vars[row    ][col + 1]
-            clauses += generate_3xor(  out, in_1, in_2, c_in)
-            clauses += generate_3gt1(c_out, in_1, in_2, c_in)
+            clauses += generate_xor(  out, in_1, in_2, c_in)
+            clauses += generate_gt1(c_out, in_1, in_2, c_in)
 
         # Map each adder's overflow carry bit to the input of the adder below
         col   = n - 1
@@ -87,8 +87,8 @@ def generate_multiplier_cnf(n: int, offset: int = 1):
         out   = adder_out_vars  [row    ][col    ]
         c_in  = adder_carry_vars[row    ][col    ]
         c_out = adder_carry_vars[row    ][col + 1]
-        clauses += generate_3xor(  out, in_1, in_2, c_in)
-        clauses += generate_3gt1(c_out, in_1, in_2, c_in)
+        clauses += generate_xor(  out, in_1, in_2, c_in)
+        clauses += generate_gt1(c_out, in_1, in_2, c_in)
 
     # Step 6: get a list of the output variables
     out_vars = [ adder_out_vars[row][0] for row in range(n) ]
@@ -113,18 +113,51 @@ def generate_forward_multiplication(x: int, y: int):
 
     return nvars, clauses, x_vars, y_vars, out_vars
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <N>")
-        exit(1)
+def generate_backward_multiplication(c: int):
+    n = max(1, c.bit_length())
 
-    n = int(sys.argv[1])
+    # Generate multiplier
     nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(n)
 
+    # Set output bits
+    for i in range(n):
+        clauses += [
+            [out_vars[i] * (1 if c & 1 == 1 else -1)],
+            [-out_vars[n + i]], # Left-pad with zeroes
+        ]
+        c >>= 1
+
+    # Assert that inputs are not equal to 1
+    clauses.append([x for x in x_vars[1:]] + [-x_vars[0]])
+    clauses.append([y for y in y_vars[1:]] + [-y_vars[0]])
+
+    return nvars, clauses, x_vars, y_vars, out_vars
+
+def print_cnf(nvars, clauses):
     # Output CNF
     print(f'p cnf {nvars} {len(clauses)}')
     for clause in clauses:
         print(' '.join(str(lit) for lit in clause) + ' 0')
-    print(f"c input vars (x): {' '.join(str(x) for x in x_vars)}")
-    print(f"c input vars (y): {' '.join(str(y) for y in y_vars)}")
-    print(f"c output vars: {' '.join(str(o) for o in out_vars)}")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog = 'MultiplicationCNFGen',
+        description = "Generates multiplication CNF instances"
+    )
+
+    parser.add_argument('-n', '--size', type=int)
+    parser.add_argument('-f', '--factor', type=int)
+    parser.add_argument('-x', nargs=2, type=int)
+
+    args = parser.parse_args()
+    if (args.size != None):
+        nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(args.size)
+        print_cnf(nvars, clauses)
+    elif (args.factor != None):
+        nvars, clauses, x_vars, y_vars, out_vars = generate_backward_multiplication(args.factor)
+        print_cnf(nvars, clauses)
+    elif (args.x != None):
+        nvars, clauses, x_vars, y_vars, out_vars = generate_forward_multiplication(args.x[0], args.x[1])
+        print_cnf(nvars, clauses)
+    else:
+        parser.error('No action requested')
