@@ -1,15 +1,56 @@
 import argparse
 from typing import List
 
+def generate_xor(x: int, vs: List[int]):
+    assert(len(vs) > 1)
+
+    def generate_xor_helper(clauses: List[List[int]], built: List[int], available: List[int]):
+        if len(available) <= 1:
+            clauses.append(built + available)
+            return clauses
+        
+        for i in range(len(available)):
+            tmp1 = built + available[:i] + [-available[i]]
+            for j in range(i + 1, len(available)):
+                tmp2 = tmp1 + available[i+1:j] + [-available[j]]
+                generate_xor_helper(clauses, tmp2, available[j+1:])
+
+        if len(built) == 1: clauses.append(built + available)
+        return clauses
+
+    # x => XOR(v1, v2, ...)
+    forward_clauses = generate_xor_helper([], [-x], vs)
+
+    # x <= XOR(v1, v2, ...)
+    vs = [-vs[0]] + vs[1:]
+    backward_clauses = generate_xor_helper([], [x], vs)
+
+    return forward_clauses + backward_clauses
+
 # Generate clauses encoding x <=> XOR(a, b, c)
-def generate_xor(x: int, a: int, b: int, c: int) -> List[List[int]]:
+def generate_3xor(x: int, a: int, b: int, c: int) -> List[List[int]]:
     return [
         [-x, a, b, c], [-x,-a,-b, c], [-x,-a, b,-c], [-x, a,-b,-c],
         [ x,-a,-b,-c], [ x, a, b,-c], [ x, a,-b, c], [ x,-a, b, c],
     ]
 
+def generate_gt1(x: int, vs: List[int]):
+    assert(len(vs) > 1)
+    clauses = []
+
+    # x <= SUM(vs) > 1
+    for i in range(len(vs)):
+        for j in range(i + 1, len(vs)):
+            clauses.append([x, -vs[i], -vs[j]])
+
+    # x => SUM(vs) > 1
+    for i in range(len(vs)):
+        clauses.append([-x] + vs[0:i] + vs[i+1:])
+
+    return clauses
+
 # Generate clauses encoding x <=> a + b + c > 1
-def generate_gt1(x: int, a: int, b: int, c: int) -> List[List[int]]:
+def generate_3gt1(x: int, a: int, b: int, c: int) -> List[List[int]]:
     return [
         [ x,-a,-b], [ x,-a,-c], [ x,-b,-c],
         [-x, a, b], [-x, a, c], [-x, b, c],
@@ -77,8 +118,8 @@ def generate_multiplier_cnf(n: int, offset: int = 1):
             out   = adder_out_vars  [row    ][col    ]
             c_in  = adder_carry_vars[row    ][col    ]
             c_out = adder_carry_vars[row    ][col + 1]
-            clauses += generate_xor(  out, in_1, in_2, c_in)
-            clauses += generate_gt1(c_out, in_1, in_2, c_in)
+            clauses += generate_xor(  out, [in_1, in_2, c_in])
+            clauses += generate_gt1(c_out, [in_1, in_2, c_in])
 
         # Map each adder's overflow carry bit to the input of the adder below
         col   = n - 1
@@ -87,8 +128,8 @@ def generate_multiplier_cnf(n: int, offset: int = 1):
         out   = adder_out_vars  [row    ][col    ]
         c_in  = adder_carry_vars[row    ][col    ]
         c_out = adder_carry_vars[row    ][col + 1]
-        clauses += generate_xor(  out, in_1, in_2, c_in)
-        clauses += generate_gt1(c_out, in_1, in_2, c_in)
+        clauses += generate_xor(  out, [in_1, in_2, c_in])
+        clauses += generate_gt1(c_out, [in_1, in_2, c_in])
 
     # Step 6: get a list of the output variables
     out_vars = [ adder_out_vars[row][0] for row in range(n) ]
