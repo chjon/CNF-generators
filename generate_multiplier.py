@@ -185,6 +185,15 @@ if __name__ == '__main__':
     parser.add_argument('-x', nargs=2, type=int)
 
     args = parser.parse_args()
+    count = 0
+    if args.size          != None: count += 1
+    if args.factor        != None: count += 1
+    if args.x             != None: count += 1
+    if args.commutativity != None: count += 1
+
+    if count > 1:
+        parser.error('Please request at most one action')
+
     if args.size != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(args.size)
         print_cnf(nvars, clauses)
