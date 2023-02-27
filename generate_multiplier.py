@@ -133,6 +133,40 @@ def generate_backward_multiplication(c: int):
 
     return nvars, clauses, x_vars, y_vars, out_vars
 
+def generate_commutativity(n: int):
+    # Generate multipliers
+    offset = 1
+    nvars1, clauses1, x_vars1, y_vars1, out_vars1 = generate_multiplier_cnf(n, offset)
+    offset += nvars1
+    nvars2, clauses2, x_vars2, y_vars2, out_vars2 = generate_multiplier_cnf(n, offset)
+    offset += nvars2
+
+    # Assert that x1 = y2 and x2 = y1
+    clauses = clauses1 + clauses2
+    for i in range(n):
+        clauses += [
+            [ x_vars1[i],-y_vars2[i]], [-x_vars1[i], y_vars2[i]],
+            [ x_vars2[i],-y_vars1[i]], [-x_vars2[i], y_vars1[i]],
+        ]
+
+    # Define variables to find differences in the output
+    e = offset
+    for i in range(2 * n):
+        # e <=> (o1 <=/=> o2)
+        o1 = out_vars1[i]
+        o2 = out_vars2[i]
+        clauses += [
+            [ e,-o1, o2], [ e, o1,-o2],
+            [-e, o1, o2], [-e,-o1,-o2],
+        ]
+        e += 1
+
+    # Assert that the outputs differ somewhere
+    clauses.append([ e for e in range(offset, offset + 2 * n) ])
+    offset = e
+
+    return e, clauses
+
 def print_cnf(nvars, clauses):
     # Output CNF
     print(f'p cnf {nvars} {len(clauses)}')
@@ -147,17 +181,21 @@ if __name__ == '__main__':
 
     parser.add_argument('-n', '--size', type=int)
     parser.add_argument('-f', '--factor', type=int)
+    parser.add_argument('-c', '--commutativity', type=int)
     parser.add_argument('-x', nargs=2, type=int)
 
     args = parser.parse_args()
-    if (args.size != None):
+    if args.size != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(args.size)
         print_cnf(nvars, clauses)
-    elif (args.factor != None):
+    elif args.factor != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_backward_multiplication(args.factor)
         print_cnf(nvars, clauses)
-    elif (args.x != None):
+    elif args.x != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_forward_multiplication(args.x[0], args.x[1])
+        print_cnf(nvars, clauses)
+    elif args.commutativity != None:
+        nvars, clauses = generate_commutativity(args.commutativity)
         print_cnf(nvars, clauses)
     else:
         parser.error('No action requested')

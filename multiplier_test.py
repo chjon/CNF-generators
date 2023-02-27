@@ -58,6 +58,23 @@ def test_factoring():
     assert(test(44) != None)
     assert(test(65) == (5, 13))
 
+def test_commutativity():
+    def test(n: int):
+        # Generate instance
+        nvars, clauses = generate_commutativity(n)
+        g = Glucose3()
+        for clause in clauses:
+            g.add_clause(clause)
+        
+        # Must be commutative
+        assert(not g.solve())
+    
+    test(1)
+    test(2)
+    test(3)
+    test(4)
+
 if __name__ == '__main__':
     test_multiplication()
     test_factoring()
+    test_commutativity()
