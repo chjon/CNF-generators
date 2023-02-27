@@ -11,7 +11,7 @@ def test_multiplication():
             g.add_clause(clause)
         
         # Perform multiplication by sat solving
-        assert(g.solve())
+        assert g.solve()
         model = g.get_model()
         result = 0
         for i, o in enumerate(out_vars):
@@ -19,7 +19,7 @@ def test_multiplication():
 
         # Perform multiplication normally
         expected = x * y
-        assert(result == expected)
+        assert result == expected, f"Expected: {x} * {y} = {expected}; Received: {result}"
 
     for x in range(0, 31):
         for y in range(0, 31):
@@ -48,15 +48,15 @@ def test_factoring():
         else:
             return None
 
-    assert(test(1)  == None)
-    assert(test(2)  == None)
-    assert(test(3)  == None)
-    assert(test(5)  == None)
-    assert(test(8)  == (2, 4))
-    assert(test(13) == None)
-    assert(test(21) == (3, 7))
-    assert(test(44) != None)
-    assert(test(65) == (5, 13))
+    assert test(1)  == None
+    assert test(2)  == None
+    assert test(3)  == None
+    assert test(5)  == None
+    assert test(8)  == (2, 4)
+    assert test(13) == None
+    assert test(21) == (3, 7)
+    assert test(44) != None
+    assert test(65) == (5, 13)
 
 def test_commutativity():
     def test(n: int):
@@ -67,7 +67,7 @@ def test_commutativity():
             g.add_clause(clause)
         
         # Must be commutative
-        assert(not g.solve())
+        assert not g.solve()
     
     test(1)
     test(2)

@@ -56,7 +56,7 @@ def generate_3gt1(x: int, a: int, b: int, c: int) -> List[List[int]]:
         [-x, a, b], [-x, a, c], [-x, b, c],
     ]
 
-def generate_multiplier_cnf(n: int, offset: int = 1):
+def generate_array_multiplier(n: int, offset: int = 1):
     original_offset = offset
 
     # Step 0: define variables for the inputs
@@ -110,7 +110,7 @@ def generate_multiplier_cnf(n: int, offset: int = 1):
     clauses += [ [-adder_carry_vars[0][col]] for col in range(n + 1) ]
     clauses += [ [-adder_carry_vars[row][0]] for row in range(1, n) ]
 
-    # Step 5: generate all the adder output clauses
+    # Step 6: generate all the adder output clauses
     for row in range(1, n):
         for col in range(n - 1):
             in_1  = mult_vars       [row    ][col    ]
@@ -131,7 +131,7 @@ def generate_multiplier_cnf(n: int, offset: int = 1):
         clauses += generate_xor(  out, [in_1, in_2, c_in])
         clauses += generate_gt1(c_out, [in_1, in_2, c_in])
 
-    # Step 6: get a list of the output variables
+    # Step 7: get a list of the output variables
     out_vars = [ adder_out_vars[row][0] for row in range(n) ]
     out_vars += adder_out_vars[-1][1:] + [ adder_carry_vars[-1][n] ]
 
@@ -141,7 +141,7 @@ def generate_forward_multiplication(x: int, y: int):
     n = max(1, x.bit_length(), y.bit_length())
     
     # Generate multiplier
-    nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(n)
+    nvars, clauses, x_vars, y_vars, out_vars = generate_array_multiplier(n)
 
     # Set input bits
     for i in range(n):
@@ -158,7 +158,7 @@ def generate_backward_multiplication(c: int):
     n = max(1, c.bit_length())
 
     # Generate multiplier
-    nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(n)
+    nvars, clauses, x_vars, y_vars, out_vars = generate_array_multiplier(n)
 
     # Set output bits
     for i in range(n):
@@ -177,9 +177,9 @@ def generate_backward_multiplication(c: int):
 def generate_commutativity(n: int):
     # Generate multipliers
     offset = 1
-    nvars1, clauses1, x_vars1, y_vars1, out_vars1 = generate_multiplier_cnf(n, offset)
+    nvars1, clauses1, x_vars1, y_vars1, out_vars1 = generate_array_multiplier(n, offset)
     offset += nvars1
-    nvars2, clauses2, x_vars2, y_vars2, out_vars2 = generate_multiplier_cnf(n, offset)
+    nvars2, clauses2, x_vars2, y_vars2, out_vars2 = generate_array_multiplier(n, offset)
     offset += nvars2
 
     # Assert that x1 = y2 and x2 = y1
@@ -236,7 +236,8 @@ if __name__ == '__main__':
         parser.error('Please request at most one action')
 
     if args.size != None:
-        nvars, clauses, x_vars, y_vars, out_vars = generate_multiplier_cnf(args.size)
+        # nvars, clauses, x_vars, y_vars, out_vars = generate_array_multiplier(args.size)
+        nvars, clauses, x_vars, y_vars, out_vars = generate_carrysave_multiplier(args.size)
         print_cnf(nvars, clauses)
     elif args.factor != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_backward_multiplication(args.factor)
