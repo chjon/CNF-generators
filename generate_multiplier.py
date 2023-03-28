@@ -1,4 +1,4 @@
-import argparse
+import argparse, sympy
 from typing import List
 
 def generate_xor(x: int, vs: List[int]):
@@ -222,13 +222,15 @@ if __name__ == '__main__':
 
     parser.add_argument('-n', '--size', type=int)
     parser.add_argument('-f', '--factor', type=int)
+    parser.add_argument('-F', '--factor_bits', type=int)
     parser.add_argument('-c', '--commutativity', type=int)
     parser.add_argument('-x', nargs=2, type=int)
 
     args = parser.parse_args()
     count = 0
     if args.size          != None: count += 1
-    if args.factor        != None: count += 1
+    if args.size          != None: count += 1
+    if args.factor_bits   != None: count += 1
     if args.x             != None: count += 1
     if args.commutativity != None: count += 1
 
@@ -241,6 +243,9 @@ if __name__ == '__main__':
         print_cnf(nvars, clauses)
     elif args.factor != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_backward_multiplication(args.factor)
+        print_cnf(nvars, clauses)
+    elif args.factor_bits != None:
+        nvars, clauses, x_vars, y_vars, out_vars = generate_backward_multiplication(sympy.randprime(2**(args.factor_bits-1), 2**(args.factor_bits)))
         print_cnf(nvars, clauses)
     elif args.x != None:
         nvars, clauses, x_vars, y_vars, out_vars = generate_forward_multiplication(args.x[0], args.x[1])
