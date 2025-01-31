@@ -1,17 +1,5 @@
 from vec3 import Vec3
-
-class Mat2:
-    def __init__(self, rows: tuple[tuple[int, int], tuple[int, int]]):
-        self.rows = rows
-        
-    def __det__(self) :
-        return self.rows[0][0] * self.rows[1][1] - self.rows[0][1] * self.rows[1][0]
-    
-    def __adj__(self):
-        return Mat2((
-            (+self.rows[1][1], -self.rows[0][1]),
-            (-self.rows[1][0], +self.rows[0][0])
-        ))
+from matn import Mat, Vec
 
 class Line3:
     def __init__(self, p1: Vec3, p2: Vec3):
@@ -63,26 +51,23 @@ def do_lines_cross(l1: Line3, l2: Line3):
     #
     # Determinant is zero when the lines do not cross
     # https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-    det = l1.d.x * l2.d.y - l2.d.x * l1.d.y
+    mat = Mat([
+        [l1.d.x, l2.d.x],
+        [l1.d.y, l2.d.y]
+    ])
+    
+    det = mat.determinant()
     if det == 0: return False
     
     # det * [-λ1] = adj([l1.d.x  l2.d.x]) * [l1.p1.x - l2.p1.x]
     #       [+λ2]      ([l1.d.y  l2.d.y])   [l1.p1.y - l2.p1.y]
-    #
-    # = [+l2.d.y  -l2.d.x] * [l1.p1.x - l2.p1.x]
-    #   [-l1.d.y  +l1.d.x]   [l1.p1.y - l2.p1.y]
-    #
-    # = [+l2.d.y * (l1.p1.x - l2.p1.x) - l2.d.x * (l1.p1.y - l2.p1.y)]
-    #   [-l1.d.y * (l1.p1.x - l2.p1.x) + l1.d.x * (l1.p1.y - l2.p1.y)]
-    dx = l1.p1.x - l2.p1.x
-    dy = l1.p1.y - l2.p1.y
-    det_λ1 = +l2.d.y * dx - l2.d.x * dy
-    det_λ2 = -l1.d.y * dx + l1.d.x * dy
+    vec = Vec([l1.p1.x - l2.p1.x, l1.p1.y - l2.p1.y])
+    det_λ = mat.adjoint() * vec
     
     # Recall:      l1.p1.z - l2.p1.z = λ2 * l2.d.z - λ1 * l1.d.z
     # Then:   det * (l1.p1.z - l2.p1.z) = det * λ2 * l2.d.z - det * λ1 * l1.d.z
     lhs = det * (l1.p1.z - l2.p1.z)
-    rhs = det_λ1 * l1.d.z + det_λ2 * l2.d.z
+    rhs = det_λ(0) * l1.d.z + det_λ(1) * l2.d.z
     return lhs == rhs
     
 if __name__ == '__main__':
